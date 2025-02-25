@@ -1,1 +1,0 @@
-/usr/bin/c++ -pthread -Wl,--dependency-file=CMakeFiles/chip-8-cpp.dir/link.d "CMakeFiles/chip-8-cpp.dir/main.cc.o" -o chip-8-cpp  ../external/SDL/libSDL3.a -lm
