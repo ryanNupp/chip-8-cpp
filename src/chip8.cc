@@ -2,14 +2,11 @@
 #include <array>
 #include <fstream>
 #include <cstdint>
-#include <ctime>
+//#include <ctime>
 
 #include "chip8.hh"
 
-Chip8::Chip8(std::string rom_filepath) {
-    // initialize display
-    display.resize(disp_w * disp_h);
-
+Chip8::Chip8(std::filesystem::path rom_file) {
     uint8_t font[] = {
         0x60, 0xB0, 0xD0, 0x90, 0x60,   // 0
         0x20, 0x60, 0x20, 0x20, 0x70,   // 1
@@ -44,11 +41,28 @@ Chip8::Chip8(std::string rom_filepath) {
     srand(time(NULL));
 
     // read & load rom to memory (starting @ address 0x200)
-    std::ifstream rom(rom_filepath, std::ios::binary);
-    rom.read(reinterpret_cast<char*>(memory.data()+0x200), 3584);
+    std::ifstream rom(rom_file, std::ios::binary);
+    rom.read(reinterpret_cast<char*>(&memory[0x200]), memory.size()-0x200);
 }
 
-Chip8::~Chip8() {}
+//////////////////////////////////////////////////
+//                    Access                    //
+//////////////////////////////////////////////////
+
+std::array<uint64_t, 32> Chip8::get_display() {
+    return display;
+}
+
+bool Chip8::end_of_mem() {
+    return (program_counter > 0xFFF);
+}
+
+uint16_t Chip8::get_inst() {
+    uint8_t first_byte = memory[program_counter++];
+    uint8_t last_byte  = memory[program_counter++];
+    return (first_byte << 8) | last_byte;
+}
+
 
 //////////////////////////////////////////////////
 //                Configurations                //
@@ -75,34 +89,38 @@ void Chip8::config_store_load_inc(bool set) {
 //////////////////////////////////////////////////
 
 void Chip8::disp_clear() {
-    std::fill(display.begin(), display.end(), 0x000000FF);
+    std::fill(display.begin(), display.end(), 0);
 }
 
+// DXYN : Display instruction - draws a sprite to the screen
+// x - register number that holds the X coordinate
+// y - register number that holds the Y coordinate
+// n - number of rows the sprite takes up (1 to 16 rows, represented with 0-15)
 void Chip8::draw(uint8_t x, uint8_t y, uint8_t n) {
-    int x_pos = var_regs[x] & 63;
-    int y_pos = var_regs[y] & 31;
+    size_t x_coord = var_regs[x] & 63;
+    size_t y_coord = var_regs[y] & 31;
+    uint64_t sprite_row;
+    uint64_t collision_test;
 
-    int mem_addr = index_register;
-    while (y_pos < y_pos + n && y_pos < 32) {
-        int curr_bit = 0b1000'0000;
-        while (x_pos < x_pos + 8 && x_pos < 64) {
-            int display_index = (x & 63) + (y & 31) * 64;
-            if ((mem_addr & curr_bit) > 0) {
-                if (display[display_index] == 0xFFFFFFFF) {
-                    display[display_index] = 0x000000FF;
-                }
-                else {
-                    display[display_index] = 0xFFFFFFFF;
-                }
-            }
-            curr_bit >>= 1;
-            x_pos++;
+    // initialize flag reg VF to 0
+    var_regs[15] = 0;
+
+    for (size_t i=0; i<n; i++) {
+        sprite_row = memory[index_register+i];
+        int shift = 56 - x_coord;
+        if (shift >= 0) {
+            sprite_row <<= shift;
+        } else {
+            sprite_row >>= shift * -1;
         }
-        mem_addr++;
-        y_pos++;
+        
+        // apply changes, flag VF=1 if collision
+        collision_test = display[y_coord+i] | sprite_row;
+        display[y_coord+i] ^= sprite_row;
+        if (display[y_coord+i] != collision_test) {
+            var_regs[15] = 1;
+        }
     }
-
-    
 }
 
 //////////////////////////////////////////////////

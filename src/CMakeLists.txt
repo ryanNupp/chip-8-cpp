@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.24)
 # add source to this project's executable
 add_executable(${PROJECT_NAME})
 target_sources(${PROJECT_NAME} PRIVATE
+    window.cc
+    chip8.cc
     main.cc
 )
 

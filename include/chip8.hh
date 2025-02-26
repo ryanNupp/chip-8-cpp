@@ -2,14 +2,14 @@
 
 #include <cstdint>
 #include <array>
-#include <vector>
+#include <filesystem>
 #include <stack>
 #include <string>
 
 class Chip8 {
 private:
-    // display
-    std::vector<uint32_t> display;
+    // display  -  64 * 32 pixels
+    std::array<uint64_t, 32> display;
 
     // memory, registers, & counter
     std::array<uint8_t, 4096> memory;
@@ -25,16 +25,18 @@ private:
     std::stack<uint16_t> stack;
 
     // configuration
-    int disp_w;
-    int disp_h;
     int inst_per_sec;
     bool shift_use_vy;
     bool jump_offset_vx;
     bool store_load_i_inc;
 
 public:
-    Chip8(std::string);
-    ~Chip8();
+    Chip8(std::filesystem::path);
+
+    // access
+    std::array<uint64_t, 32> get_display();
+    bool end_of_mem();
+    uint16_t get_inst();
 
     // chip 8 configuration
     void config_timing(int);
