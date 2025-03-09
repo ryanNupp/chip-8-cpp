@@ -37,6 +37,7 @@ public:
     std::array<uint64_t, 32> get_display();
     bool end_of_mem();
     uint16_t get_inst();
+    int get_timing();
 
     // chip 8 configuration
     void config_timing(int);
@@ -44,11 +45,22 @@ public:
     void config_jump_offset(bool);
     void config_store_load_inc(bool);
 
-    // display
+/****************/
+/*   display    */
+/****************/
+    
+    
     void disp_clear();
+    
+    // DXYN : Display instruction - draws a sprite to the screen
+    // x - register number that holds the X coordinate
+    // y - register number that holds the Y coordinate
+    // n - number of rows the sprite takes up (1 to 16 rows, represented with 0-15)
     void draw(uint8_t, uint8_t, uint8_t);
 
-    // flow
+/****************/
+/*     flow     */
+/****************/
     void jump(uint16_t);
     void jump_offset(uint16_t);
     int  subroutine_call(uint16_t);
@@ -61,11 +73,11 @@ public:
     void skip_not_equal(uint8_t, uint8_t);
 
     // const
-    void set_const(uint8_t, uint8_t);
-    void add_const(uint8_t, uint8_t);
+    void set_reg_const(uint8_t, uint8_t);
+    void add_reg_const(uint8_t, uint8_t);
 
     // assig
-    void set(uint8_t, uint8_t);
+    void set_reg(uint8_t, uint8_t);
 
     // bitop
     void bitwise_or(uint8_t, uint8_t);
@@ -95,11 +107,11 @@ public:
     // -
 
     // timer
-    void set_delay_timer(uint8_t);
+    void set_delay(uint8_t);
     void get_delay(uint8_t);
 
     // sound
-    void set_sound_timer(uint8_t);
+    void set_sound(uint8_t);
 
     // bcd
     void bcd(uint8_t);
