@@ -5,6 +5,9 @@
 #include "SDL3/SDL_init.h"
 #include "SDL3/SDL_messagebox.h"
 #include "SDL3/SDL_pixels.h"
+#include "SDL3/SDL_log.h"
+#include "SDL3/SDL_dialog.h"
+#include <csignal>
 
 WindowHandler::WindowHandler() {
     SDL_Init(SDL_INIT_VIDEO);
@@ -80,16 +83,25 @@ void WindowHandler::poll_events() {
     }
 }
 
-void WindowHandler::rom_over_popup() {
-    SDL_ShowSimpleMessageBox(
-        SDL_MESSAGEBOX_INFORMATION,
-        "End of Memory",
-        "While running this rom, the end of memory was reached",
-        window
-    );
+void WindowHandler::popup(std::string title, std::string message) {
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title.c_str(), message.c_str(), window);
     is_running = false;
 }
 
 bool WindowHandler::get_run_status() {
     return is_running;
+}
+
+void WindowHandler::open_file() {
+    SDL_ShowOpenFileDialog(
+        [](void* userdata, const char* const* filelist, int filter) {
+            userdata = &filelist;
+        },
+        NULL,
+        window,
+        NULL,
+        0,
+        NULL,
+        false
+    );
 }
