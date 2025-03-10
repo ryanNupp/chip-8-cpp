@@ -25,5 +25,5 @@ freely, subject to the following restrictions:
 CREDITS:
 
 This software makes use of
-- SDL3
-- tinyfiledialogs
+- [SDL3](https://www.libsdl.org/)
+- [tinyfiledialogs](https://sourceforge.net/projects/tinyfiledialogs/)
