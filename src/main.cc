@@ -26,12 +26,12 @@ freely, subject to the following restrictions:
    misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 */
-#include <iostream>
 #include <filesystem>
-#include <semaphore>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <chrono>
+
+#include <iostream>
 
 #include "tinyfiledialogs.h"
 
@@ -52,14 +52,14 @@ int main(int argc, char ** argv) {
     tinyfd_messageBox(
         "Chip8c++",
         "Please select a Chip 8 ROM to run",
-        "dialog",
+        "ok",
         "option",
         0
     );
 
     char const* filter_patterns[1] = {"*.ch8"};
 
-    char* filepath = tinyfd_openFileDialog(
+    char const* filepath = tinyfd_openFileDialog(
         "Select ROM",
         "./",
         1,
@@ -67,20 +67,30 @@ int main(int argc, char ** argv) {
         "Chip 8 ROM files",
         0
     );
+    if (!filepath) {
+        tinyfd_messageBox(
+			"Error",
+			"No ROM selected",
+			"ok",
+			"error",
+			1
+        );
+		return 1;
+    }
 
     Chip8 chip8(filepath);
-    WindowHandler w{};    
+    WindowHandler w{};
 
 
     std::chrono::time_point time_next = std::chrono::high_resolution_clock::now();
-    //std::chrono::nanoseconds inst_time{1000000000 / 700};
+    std::chrono::nanoseconds inst_time{1000000000 / 700};
 
     while (w.get_run_status()) {
         w.poll_events();
 
         if (std::chrono::high_resolution_clock::now() >= time_next) {
             instruction_cycle(chip8, w);
-            time_next += std::chrono::nanoseconds{1000000000 / 700};
+            time_next += inst_time;
         }
     }
     
