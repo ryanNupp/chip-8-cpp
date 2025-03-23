@@ -56,15 +56,13 @@ int main(int argc, char ** argv) {
         "option",
         0
     );
-
     char const* filter_patterns[1] = {"*.ch8"};
-
     char const* filepath = tinyfd_openFileDialog(
         "Select ROM",
         "./",
         1,
         filter_patterns,
-        "Chip 8 ROM files",
+        "*.ch8",
         0
     );
     if (!filepath) {
@@ -78,15 +76,34 @@ int main(int argc, char ** argv) {
 		return 1;
     }
 
+
+    std::filesystem::path rom{filepath};
+    if (!std::filesystem::exists(rom) || rom.extension() != ".ch8") {
+        tinyfd_messageBox(
+			"Error",
+			"Invalid file! Select a valid Chip 8 ROM file. (.ch8)",
+			"ok",
+			"error",
+			1
+        );
+		return 1;
+    }
+    
+
     Chip8 chip8(filepath);
     WindowHandler w{};
 
-
     std::chrono::time_point time_next = std::chrono::high_resolution_clock::now();
-    std::chrono::nanoseconds inst_time{1000000000 / 700};
+    std::chrono::nanoseconds inst_time{1000000000 / chip8.get_timing()};
 
     while (w.get_run_status()) {
         w.poll_events();
+        
+        // std::array<bool, 16> keys = w.get_keys();
+        // for (bool key : keys) {
+        //     std::cout << key << " ";
+        // }
+        // std::cout << "\n";
 
         if (std::chrono::high_resolution_clock::now() >= time_next) {
             instruction_cycle(chip8, w);
@@ -103,52 +120,82 @@ void instruction_cycle(Chip8& chip8, WindowHandler& w) {
     switch (OP(inst)) {
     case 0x0:
         switch (NNN(inst)) {
-        case 0x0E0:    chip8.disp_clear();                         break;
-        case 0x0EE:    chip8.subroutine_return();                  break;
+        case 0x0E0:    chip8.disp_clear();                               break;
+        case 0x0EE:    chip8.subroutine_return();                        break;
         }
         break;
-    case 0x1:    chip8.jump(NNN(inst));                            break;
-    case 0x2:    chip8.subroutine_call(NNN(inst));                 break;
-    case 0x3:    chip8.skip_equal_const(X(inst), NN(inst));        break;
-    case 0x4:    chip8.skip_not_equal_const(X(inst), NN(inst));    break;
-    case 0x5:    chip8.skip_equal(X(inst), Y(inst));               break;
-    case 0x6:    chip8.set_reg_const(X(inst), NN(inst));           break;
-    case 0x7:    chip8.add_reg_const(X(inst), NN(inst));           break;
+    case 0x1:    chip8.jump(NNN(inst));                                  break;
+    case 0x2:    chip8.subroutine_call(NNN(inst));                       break;
+    case 0x3:    chip8.skip_equal_const(X(inst), NN(inst));              break;
+    case 0x4:    chip8.skip_not_equal_const(X(inst), NN(inst));          break;
+    case 0x5:    chip8.skip_equal(X(inst), Y(inst));                     break;
+    case 0x6:    chip8.set_reg_const(X(inst), NN(inst));                 break;
+    case 0x7:    chip8.add_reg_const(X(inst), NN(inst));                 break;
     case 0x8:
         switch (N(inst)) {
-        case 0x0:    chip8.set_reg(X(inst), Y(inst));              break;
-        case 0x1:    chip8.bitwise_or(X(inst), Y(inst));           break;
-        case 0x2:    chip8.bitwise_and(X(inst), Y(inst));          break;
-        case 0x3:    chip8.bitwise_xor(X(inst), Y(inst));          break;
-        case 0x4:    chip8.add(X(inst), Y(inst));                  break;
-        case 0x5:    chip8.subtract_x_y(X(inst), Y(inst));         break;
-        case 0x6:    chip8.bitwise_shift_right(X(inst), Y(inst));  break;
-        case 0x7:    chip8.subtract_y_x(X(inst), Y(inst));         break;
-        case 0xE:    chip8.bitwise_shift_left(X(inst), Y(inst));   break;
+        case 0x0:    chip8.set_reg(X(inst), Y(inst));                    break;
+        case 0x1:    chip8.bitwise_or(X(inst), Y(inst));                 break;
+        case 0x2:    chip8.bitwise_and(X(inst), Y(inst));                break;
+        case 0x3:    chip8.bitwise_xor(X(inst), Y(inst));                break;
+        case 0x4:    chip8.add(X(inst), Y(inst));                        break;
+        case 0x5:    chip8.subtract_x_y(X(inst), Y(inst));               break;
+        case 0x6:    chip8.bitwise_shift_right(X(inst), Y(inst));        break;
+        case 0x7:    chip8.subtract_y_x(X(inst), Y(inst));               break;
+        case 0xE:    chip8.bitwise_shift_left(X(inst), Y(inst));         break;
         }
         break;
-    case 0x9:    chip8.skip_not_equal(X(inst), Y(inst));           break;
-    case 0xA:    chip8.set_index(NNN(inst));                       break;
-    case 0xB:    chip8.jump_offset(NNN(inst));                     break;
-    case 0xC:    chip8.gen_rand(X(inst), NN(inst));                break;
-    case 0xD:    chip8.draw(X(inst), Y(inst), N(inst));            break;
+    case 0x9:    chip8.skip_not_equal(X(inst), Y(inst));                 break;
+    case 0xA:    chip8.set_index(NNN(inst));                             break;
+    case 0xB:    chip8.jump_offset(NNN(inst));                           break;
+    case 0xC:    chip8.gen_rand(X(inst), NN(inst));                      break;
+    case 0xD:    chip8.draw(X(inst), Y(inst), N(inst));                  break;
     case 0xE:
         switch (NN(inst)) {
-        case 0x9E:  /* skip if key pressed == Vx (lowest four bits) */  break;
-        case 0xA1:  /* skip if key pressed != Vx (lowest four bits) */  break;
+        case 0x9E:
+            if (w.keys[chip8.get_var_reg(X(inst))])
+                chip8.increment_pc();
+            break;
+        case 0xA1:
+            if (!w.keys[chip8.get_var_reg(X(inst))])
+                chip8.increment_pc();
+            break;
         }
         break;
     case 0xF:
         switch (NN(inst)) {
-        case 0x07:    chip8.get_delay(X(inst));                    break;
-        case 0x0A:    /* key op get key */   break;
-        case 0x15:    chip8.set_delay(X(inst));                    break;
-        case 0x18:    chip8.set_sound(X(inst));                    break;
-        case 0x1E:    chip8.add_index(X(inst));                    break;
-        case 0x29:    chip8.sprite_index(X(inst));                 break;
-        case 0x33:    chip8.bcd(X(inst));                          break;
-        case 0x55:    chip8.reg_dump(X(inst));                     break;
-        case 0x65:    chip8.reg_load(X(inst));                     break;
+        case 0x07:    chip8.get_delay(X(inst));                          break;
+        case 0x0A:
+            switch (chip8.block_state) {
+            case 0:
+                chip8.block_state = 1;
+                chip8.decrement_pc();
+                break;
+            case 1:
+                if (w.last_key_down >= 0 && w.keys[w.last_key_down]) {
+                    chip8.set_reg_const(X(inst), w.last_key_down);
+                    std::cout << "REG " << X(inst) << " - " << int(chip8.get_var_reg(X(inst))) << "\n";
+                    chip8.block_state = 2;
+                }
+                chip8.decrement_pc();
+                break;
+            case 2:
+                if (w.last_key_down == -1) {
+                    chip8.block_state = 0;
+                    std::cout << "(end)REG " << X(inst) << " - " << int(chip8.get_var_reg(X(inst))) << "\n";
+                }
+                else {
+                    chip8.decrement_pc();
+                }
+                break;
+            }
+            break;
+        case 0x15:    chip8.set_delay(X(inst));                          break;
+        case 0x18:    chip8.set_sound(X(inst));                          break;
+        case 0x1E:    chip8.add_index(X(inst));                          break;
+        case 0x29:    chip8.sprite_index(X(inst));                       break;
+        case 0x33:    chip8.bcd(X(inst));                                break;
+        case 0x55:    chip8.reg_dump(X(inst));                           break;
+        case 0x65:    chip8.reg_load(X(inst));                           break;
         }
         break;
     }

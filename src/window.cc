@@ -32,9 +32,8 @@ freely, subject to the following restrictions:
 #include "SDL3/SDL_init.h"
 #include "SDL3/SDL_messagebox.h"
 #include "SDL3/SDL_pixels.h"
-#include "SDL3/SDL_log.h"
 #include "SDL3/SDL_dialog.h"
-#include <csignal>
+#include <iostream>
 
 WindowHandler::WindowHandler() {
     SDL_Init(SDL_INIT_VIDEO);
@@ -65,6 +64,10 @@ WindowHandler::WindowHandler() {
     SDL_SetRenderTarget(renderer, texture);
     SDL_RenderClear(renderer);
     SDL_SetRenderTarget(renderer, NULL);
+
+    // initialize keys (unpressed)
+    std::fill(keys.begin(), keys.end(), false);
+    last_key_down = -1;
 }
 
 WindowHandler::~WindowHandler() {
@@ -102,10 +105,40 @@ void WindowHandler::draw_pixels(std::array<uint64_t, 32> chip8_display) {
 void WindowHandler::poll_events() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
-        switch (event.type) {
-        case SDL_EVENT_QUIT:
+        if (event.type == SDL_EVENT_QUIT) {
             is_running = false;
-            break;
+        }
+        else if (event.type == SDL_EVENT_KEY_UP || event.type == SDL_EVENT_KEY_DOWN) {
+            int selected_key = -1;
+            switch (event.key.key) {
+            case SDLK_1:    selected_key = 1;       break;
+            case SDLK_2:    selected_key = 2;       break;
+            case SDLK_3:    selected_key = 3;       break;
+            case SDLK_4:    selected_key = 12;      break;
+            case SDLK_Q:    selected_key = 4;       break;
+            case SDLK_W:    selected_key = 5;       break;
+            case SDLK_E:    selected_key = 6;       break;
+            case SDLK_R:    selected_key = 13;      break;
+            case SDLK_A:    selected_key = 7;       break;
+            case SDLK_S:    selected_key = 8;       break;
+            case SDLK_D:    selected_key = 9;       break;
+            case SDLK_F:    selected_key = 14;      break;
+            case SDLK_Z:    selected_key = 10;      break;
+            case SDLK_X:    selected_key = 0;       break;
+            case SDLK_C:    selected_key = 11;      break;
+            case SDLK_V:    selected_key = 15;      break;
+            }
+            if (selected_key >= 0) {
+                if (event.type == SDL_EVENT_KEY_DOWN) {
+                    keys[selected_key] = true;
+                    last_key_down = selected_key;
+                }
+                else { // key up event
+                    keys[selected_key] = false;
+                    last_key_down = -1;
+                }
+            }
+            std::cout << "Last down: " << last_key_down << " - " << keys[last_key_down] << "\n";
         }
     }
 }

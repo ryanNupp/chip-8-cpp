@@ -61,11 +61,19 @@ private:
 public:
     Chip8(std::filesystem::path);
 
+    // 0 - not blocked,  1 - blocked,  2 - recognized key down (still blocked) awaiting matching key up
+    int block_state;
+
     // access
     std::array<uint64_t, 32> get_display();
     bool end_of_mem();
     uint16_t get_inst();
+    void decrement_pc();
+    void increment_pc();
     int get_timing();
+    //
+    uint8_t get_var_reg(uint8_t);
+
 
     // chip 8 configuration
     void config_timing(int);
@@ -130,9 +138,9 @@ public:
     void gen_rand(uint8_t, uint8_t);
 
     // keyop
-    // -
-    // -
-    // -
+    void get_key(uint8_t);
+    void skip_key_equal(uint8_t);
+    void skip_key_not_equal(uint8_t);
 
     // timer
     void set_delay(uint8_t);

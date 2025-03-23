@@ -43,12 +43,17 @@ class WindowHandler {
     bool is_running;
 
 public:
+    std::array<bool, 16> keys;
+    int last_key_down;
+
     WindowHandler();
     ~WindowHandler();
 
     void open_file();
     void draw_pixels(std::array<uint64_t, 32>);
     void poll_events();
+    bool key_is_pressed(uint8_t);
+    int  get_curr_key();
     void popup(std::string, std::string);
     bool get_run_status();
 };

@@ -75,6 +75,9 @@ Chip8::Chip8(std::filesystem::path rom_file) {
     // read & load rom to memory (starting @ address 0x200)
     std::ifstream rom(rom_file, std::ios::binary);
     rom.read(reinterpret_cast<char*>(&memory[0x200]), memory.size()-0x200);
+
+    // init block (no block yet)
+    block_state = 0;
 }
 
 //////////////////////////////////////////////////
@@ -93,6 +96,14 @@ uint16_t Chip8::get_inst() {
     uint8_t first_byte = memory[program_counter++];
     uint8_t last_byte  = memory[program_counter++];
     return (first_byte << 8) | last_byte;
+}
+
+void Chip8::decrement_pc() {
+    program_counter -= 2;
+}
+
+void Chip8::increment_pc() {
+    program_counter += 2;
 }
 
 int Chip8::get_timing() {
@@ -384,11 +395,24 @@ void Chip8::gen_rand(uint8_t x, uint8_t n) {
 //                    KeyOp                     //
 //////////////////////////////////////////////////
 
-// EX9E : Skip if key currently pressed == Vx
-
-// EXA1 : Skip if key currently pressed != Vx
-
 // FX0A : Await input, grab & store key pressed
+void Chip8::get_key(uint8_t x) {
+
+}
+
+// EX9E : Skip if key Vx is currently pressed
+void Chip8::skip_key_equal(uint8_t x) {
+
+}
+
+// EXA1 : Skip if key Vx is NOT currently pressed
+void Chip8::skip_key_not_equal(uint8_t x) {
+
+}
+
+uint8_t Chip8::get_var_reg(uint8_t x) {
+    return var_regs[x];
+}
 
 //////////////////////////////////////////////////
 //                    Timer                     //
